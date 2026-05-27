@@ -12,7 +12,7 @@ const reviewModal = document.getElementById('reviewModal');
 const navToggle = document.getElementById('navToggle');
 const navList = document.querySelector('.nav-list');
 const navLinks = document.querySelectorAll('.nav-link:not(.lang-btn)');
-const langToggle = document.getElementById('langToggle');
+const langBtns = document.querySelectorAll('.lang-btn');
 
 function formatDate(dateStr) {
   const locale = currentLang === 'es' ? 'es-ES' : 'en-US';
@@ -29,28 +29,29 @@ async function loadLang(lang) {
   try {
     const res = await fetch(`lang/${lang}.json`, { cache: 'no-cache' });
     langData = await res.json();
-    currentLang = lang;
-    document.documentElement.lang = lang === 'es' ? 'es' : 'en';
-    document.documentElement.dataset.lang = lang;
-    applyLang();
-    localStorage.setItem('siteLang', lang);
-    langToggle.dataset.lang = lang;
-    langToggle.textContent = lang === 'en' ? 'EN' : 'ES';
-    if (siteConfig.siteName) {
-      document.title = `${siteConfig.siteName} — ${lang === 'es' ? 'Reparación de Computadoras' : 'Computer Repair'}`;
-    }
-  } catch {}
+  } catch {
+    langData = {};
+  }
+  currentLang = lang;
+  document.documentElement.lang = lang === 'es' ? 'es' : 'en';
+  document.documentElement.dataset.lang = lang;
+  applyLang();
+  localStorage.setItem('siteLang', lang);
+  langBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+  if (siteConfig.siteName) {
+    document.title = `${siteConfig.siteName} — ${lang === 'es' ? 'Reparación de Computadoras' : 'Computer Repair'}`;
+  }
 }
 
 function applyLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
-    const val = getNested(langData, key);
+    const val = langData[key];
     if (val !== undefined) el.innerHTML = val;
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const key = el.dataset.i18nPlaceholder;
-    const val = getNested(langData, key);
+    const val = langData[key];
     if (val !== undefined) el.placeholder = val;
   });
   if (reviewsGrid && !reviewsGrid.children.length) {
@@ -64,11 +65,10 @@ async function loadConfig() {
     const res = await fetch('site-config.json', { cache: 'no-cache' });
     siteConfig = await res.json();
     applyConfig(siteConfig);
-    const preferred = localStorage.getItem('siteLang') || navigator.language.split('-')[0] || 'en';
-    const defaultLang = siteConfig.defaultLanguage || 'en';
-    const detected = (preferred === 'es') ? 'es' : 'en';
-    await loadLang(detected || defaultLang);
   } catch {}
+  const preferred = localStorage.getItem('siteLang') || navigator.language.split('-')[0] || 'en';
+  const defaultLang = siteConfig.defaultLanguage || 'en';
+  await loadLang(preferred === 'es' ? 'es' : defaultLang);
 }
 
 function applyConfig(cfg) {
@@ -222,9 +222,13 @@ async function loadReviews() {
   } catch {}
 }
 
-langToggle.addEventListener('click', () => {
-  const next = currentLang === 'en' ? 'es' : 'en';
-  loadLang(next);
+langBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const lang = btn.dataset.lang;
+    if (lang && lang !== currentLang) {
+      loadLang(lang);
+    }
+  });
 });
 
 navToggle.addEventListener('click', () => {
