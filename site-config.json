@@ -1,10 +1,9 @@
 {
-  "defaultLanguage": "en",
   "siteName": "Sosa's 64bit Fix",
+  "defaultLanguage": "en",
   "metaDescription": "Expert computer repair services by Sosa's 64bit Fix. Fast, reliable, and affordable repairs for all your tech needs.",
-  "titleTag": "Sosa's 64bit Fix — Computer Repair",
   "hero": {
-    "badge": "SINCE 2024",
+    "badge": "SINCE 2013",
     "title": "Your PC.<br>Our <span class=\"highlight\">Expertise.</span>",
     "subtitle": "Professional computer repair, upgrades, and diagnostics. Fast turnaround, fair prices, and work you can trust.",
     "statRepairs": "500+",
