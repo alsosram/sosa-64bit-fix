@@ -6,6 +6,8 @@ let allDevices = [];
 let allReviews = [];
 let editingRepairId = null;
 let editingDeviceSerial = null;
+let _mfaFactorId = null;
+let _mfaLoginData = null;
 
 const viewLogin = document.getElementById('viewLogin');
 const viewDashboard = document.getElementById('viewDashboard');
@@ -14,6 +16,10 @@ const viewDeviceEditor = document.getElementById('viewDeviceEditor');
 
 const loginForm = document.getElementById('loginForm');
 const loginError = document.getElementById('loginError');
+const loginMfaStep = document.getElementById('loginMfaStep');
+const loginMfaCode = document.getElementById('loginMfaCode');
+const loginMfaBtn = document.getElementById('loginMfaBtn');
+const loginMfaError = document.getElementById('loginMfaError');
 
 const repairsBody = document.getElementById('repairsBody');
 const repairsTable = document.getElementById('repairsTable');
@@ -75,6 +81,17 @@ const passwordForm = document.getElementById('passwordForm');
 const pwMsg = document.getElementById('pwMsg');
 const pwSaveBtn = document.getElementById('pwSaveBtn');
 
+const mfaStatus = document.getElementById('mfaStatus');
+const mfaEnroll = document.getElementById('mfaEnroll');
+const mfaQr = document.getElementById('mfaQr');
+const mfaSecret = document.getElementById('mfaSecret');
+const mfaVerifyCode = document.getElementById('mfaVerifyCode');
+const mfaVerifyBtn = document.getElementById('mfaVerifyBtn');
+const mfaEnrollMsg = document.getElementById('mfaEnrollMsg');
+const mfaActive = document.getElementById('mfaActive');
+const mfaDisableBtn = document.getElementById('mfaDisableBtn');
+const mfaDisableMsg = document.getElementById('mfaDisableMsg');
+
 async function ghFetch(path, method = 'GET', body = null) {
   const opts = { method, headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } };
   if (body) opts.body = JSON.stringify(body);
@@ -111,8 +128,16 @@ loginForm.addEventListener('submit', async (e) => {
   if (!email || !password || !token || !owner || !repo) { loginError.textContent = 'Please fill in all fields.'; return; }
   loginError.textContent = 'Signing in...';
   try {
-    const { error } = await sbAuth.signInWithPassword({ email, password });
+    const { data, error } = await sbAuth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (data?.factors?.length) {
+      _mfaFactorId = data.factors[0].id;
+      _mfaLoginData = { token, owner, repo };
+      loginForm.style.display = 'none';
+      loginMfaStep.style.display = '';
+      loginMfaCode.focus();
+      return;
+    }
     localStorage.setItem('adminToken', token);
     localStorage.setItem('adminOwner', owner);
     localStorage.setItem('adminRepo', repo);
@@ -123,6 +148,14 @@ loginForm.addEventListener('submit', async (e) => {
 function showView(view) {
   [viewLogin, viewDashboard, viewRepairEditor, viewDeviceEditor].forEach(v => v.style.display = 'none');
   view.style.display = '';
+  if (view === viewLogin) {
+    loginForm.style.display = '';
+    loginMfaStep.style.display = 'none';
+    loginMfaCode.value = '';
+    loginMfaError.textContent = '';
+    loginMfaBtn.disabled = false;
+    loginError.textContent = '';
+  }
 }
 
 function showDashboard() {
@@ -185,6 +218,7 @@ function switchTab(tabId) {
   if (tabId === 'devices') loadDevicesDashboard();
   if (tabId === 'reviews') loadReviewsDashboard();
   if (tabId === 'settings') loadSettings();
+  if (tabId === 'account') loadMfaStatus();
 }
 
 edTitle.addEventListener('input', () => {
@@ -257,6 +291,27 @@ async function deleteRepair(id) {
     allRepairs = updated; renderRepairsDashboard();
   } catch (err) { alert('Delete failed: ' + err.message); }
 }
+
+loginMfaBtn.addEventListener('click', async () => {
+  const code = loginMfaCode.value.trim();
+  if (!code || code.length !== 6) { loginMfaError.textContent = 'Enter a 6-digit code.'; return; }
+  loginMfaError.textContent = 'Verifying...';
+  loginMfaBtn.disabled = true;
+  try {
+    const { data: chal, error: chalErr } = await sbMfaChallenge(_mfaFactorId);
+    if (chalErr) throw chalErr;
+    const { error: verErr } = await sbMfaVerify(_mfaFactorId, chal.id, code);
+    if (verErr) throw verErr;
+    ({ token, owner, repo } = _mfaLoginData);
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminOwner', owner);
+    localStorage.setItem('adminRepo', repo);
+    showDashboard();
+  } catch (err) {
+    loginMfaError.textContent = 'MFA failed: ' + err.message;
+    loginMfaBtn.disabled = false;
+  }
+});
 
 logoutBtn.addEventListener('click', async () => {
   await sbAuth.signOut().catch(() => {});
@@ -642,6 +697,85 @@ passwordForm.addEventListener('submit', async (e) => {
     passwordForm.reset();
   } catch (err) { pwMsg.textContent = 'Error: ' + err.message; pwMsg.className = 'form-msg error'; }
   pwSaveBtn.disabled = false;
+});
+
+async function loadMfaStatus() {
+  mfaEnroll.style.display = 'none';
+  mfaActive.style.display = 'none';
+  mfaStatus.textContent = 'Checking MFA status...';
+  try {
+    const { data: factors, error } = await sbMfaListFactors();
+    if (error) throw error;
+    const verified = (factors || []).filter(f => f.type === 'totp' && f.status === 'verified');
+    if (verified.length) {
+      _mfaFactorId = verified[0].id;
+      mfaActive.style.display = '';
+      mfaStatus.textContent = '';
+    } else {
+      mfaEnroll.style.display = '';
+      mfaStatus.textContent = 'MFA is not enabled. Set it up below.';
+    }
+  } catch (err) { mfaStatus.textContent = 'Error: ' + err.message; }
+}
+
+document.getElementById('mfaStartEnrollBtn').addEventListener('click', async () => {
+  mfaEnrollMsg.textContent = '';
+  document.getElementById('mfaStartEnrollBtn').style.display = 'none';
+  document.getElementById('mfaEnrollStep').style.display = '';
+  try {
+    const { data, error } = await sbMfaEnroll();
+    if (error) throw error;
+    window._mfaEnrollFactorId = data.id;
+    mfaSecret.textContent = data.totp.secret;
+    mfaQr.innerHTML = '';
+    new QRCode(mfaQr, { text: data.totp.qr_code, width: 180, height: 180 });
+  } catch (err) { mfaEnrollMsg.textContent = 'Error: ' + err.message; mfaEnrollMsg.className = 'form-msg error'; }
+});
+
+mfaVerifyBtn.addEventListener('click', async () => {
+  const code = mfaVerifyCode.value.trim();
+  if (!code || code.length !== 6) { mfaEnrollMsg.textContent = 'Enter a 6-digit code.'; mfaEnrollMsg.className = 'form-msg error'; return; }
+  mfaEnrollMsg.textContent = 'Verifying...';
+  mfaEnrollMsg.className = 'form-msg';
+  mfaVerifyBtn.disabled = true;
+  try {
+    const { data: chal, error: chalErr } = await sbMfaChallenge(window._mfaEnrollFactorId);
+    if (chalErr) throw chalErr;
+    const { error: verErr } = await sbMfaVerify(window._mfaEnrollFactorId, chal.id, code);
+    if (verErr) throw verErr;
+    mfaEnrollMsg.textContent = 'MFA enabled!';
+    mfaEnrollMsg.className = 'form-msg success';
+    document.getElementById('mfaEnrollStep').style.display = 'none';
+    mfaEnroll.style.display = 'none';
+    mfaActive.style.display = '';
+    mfaStatus.textContent = '';
+    _mfaFactorId = window._mfaEnrollFactorId;
+  } catch (err) {
+    mfaEnrollMsg.textContent = 'Error: ' + err.message;
+    mfaEnrollMsg.className = 'form-msg error';
+    mfaVerifyBtn.disabled = false;
+  }
+});
+
+mfaDisableBtn.addEventListener('click', async () => {
+  if (!confirm('Disable MFA? Your account will only require email and password to sign in.')) return;
+  mfaDisableMsg.textContent = 'Disabling...';
+  mfaDisableMsg.className = 'form-msg';
+  mfaDisableBtn.disabled = true;
+  try {
+    const { error } = await sbMfaUnenroll(_mfaFactorId);
+    if (error) throw error;
+    mfaDisableMsg.textContent = 'MFA disabled.';
+    mfaDisableMsg.className = 'form-msg success';
+    mfaActive.style.display = 'none';
+    mfaEnroll.style.display = '';
+    mfaStatus.textContent = 'MFA is not enabled. Set it up below.';
+    _mfaFactorId = null;
+  } catch (err) {
+    mfaDisableMsg.textContent = 'Error: ' + err.message;
+    mfaDisableMsg.className = 'form-msg error';
+    mfaDisableBtn.disabled = false;
+  }
 });
 
 document.getElementById('sessionLogoutBtn').addEventListener('click', async () => {

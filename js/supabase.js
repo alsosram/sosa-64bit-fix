@@ -97,3 +97,35 @@ function sbRpc(fn, params) {
   return sbFetch('POST', `rest/v1/rpc/${fn}`, params || {})
     .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
 }
+
+function sbMfaEnroll() {
+  return sbFetch('POST', 'auth/v1/mfa/totp/enroll')
+    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+}
+
+function sbMfaChallenge(factorId) {
+  return sbFetch('POST', 'auth/v1/mfa/challenge', { factor_id: factorId })
+    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+}
+
+function sbMfaVerify(factorId, challengeId, code) {
+  return sbFetch('POST', 'auth/v1/mfa/verify', { factor_id: factorId, challenge_id: challengeId, code })
+    .then(d => {
+      if (d.access_token) {
+        _token = d.access_token;
+        const s = { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at, user: d.user };
+        try { localStorage.setItem('sb-session', JSON.stringify(s)); } catch {}
+      }
+      return { data: d, error: null };
+    }).catch(err => ({ data: null, error: err }));
+}
+
+function sbMfaUnenroll(factorId) {
+  return sbFetch('DELETE', `auth/v1/mfa/factors/${factorId}`)
+    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+}
+
+function sbMfaListFactors() {
+  return sbFetch('GET', 'auth/v1/mfa/factors')
+    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+}

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
@@ -46,6 +47,13 @@
         <button type="submit" class="btn btn-primary">Sign In</button>
         <p class="login-error" id="loginError"></p>
       </form>
+
+      <div id="loginMfaStep" style="display:none;margin-top:16px;border-top:1px solid var(--clr-border);padding-top:16px">
+        <p style="text-align:center;margin-bottom:12px;font-size:0.9rem">Enter the 6-digit code from your authenticator app</p>
+        <input type="text" id="loginMfaCode" placeholder="000000" maxlength="6" style="text-align:center;font-size:1.5rem;letter-spacing:8px;width:100%;box-sizing:border-box;padding:10px">
+        <button type="button" class="btn btn-primary" id="loginMfaBtn" style="margin-top:12px;width:100%">Verify</button>
+        <p class="login-error" id="loginMfaError"></p>
+      </div>
     </div>
   </div>
 
@@ -228,6 +236,31 @@
         </form>
 
         <div class="settings-group">
+          <h3>Multi-Factor Authentication</h3>
+          <div id="mfaSection">
+            <p style="font-size:0.85rem;color:var(--clr-text-light)" id="mfaStatus">Checking MFA status...</p>
+            <div id="mfaEnroll" style="display:none">
+              <button type="button" class="btn btn-primary" id="mfaStartEnrollBtn">Enable MFA</button>
+              <div id="mfaEnrollStep" style="display:none">
+                <p style="margin-bottom:12px">Scan this QR code with your authenticator app (e.g. Google Authenticator, Authy):</p>
+                <div id="mfaQr"></div>
+                <p style="font-size:0.85rem;color:var(--clr-text-light);margin:12px 0">Secret: <code id="mfaSecret"></code></p>
+                <label>Verify the code from your app:
+                  <input type="text" id="mfaVerifyCode" placeholder="000000" maxlength="6">
+                </label>
+                <button type="button" class="btn btn-primary" id="mfaVerifyBtn">Verify &amp; Enable</button>
+                <p class="form-msg" id="mfaEnrollMsg"></p>
+              </div>
+            </div>
+            <div id="mfaActive" style="display:none">
+              <p><i class="fas fa-check-circle" style="color:var(--clr-primary)"></i> MFA is enabled</p>
+              <button type="button" class="btn btn-danger" id="mfaDisableBtn">Disable MFA</button>
+              <p class="form-msg" id="mfaDisableMsg"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
           <h3>Session</h3>
           <button type="button" class="btn btn-danger" id="sessionLogoutBtn">Sign Out of All Sessions</button>
           <p class="form-msg" id="sessionMsg"></p>
@@ -344,7 +377,7 @@
     </main>
   </div>
 
-  <script src="js/supabase.js?v=2"></script>
-  <script src="js/admin.js?v=2"></script>
+  <script src="js/supabase.js?v=3"></script>
+  <script src="js/admin.js?v=3"></script>
 </body>
 </html>
