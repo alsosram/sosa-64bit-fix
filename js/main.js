@@ -234,9 +234,9 @@ async function loadRepairs() {
 
 async function loadReviews() {
   try {
-    const res = await fetch('reviews/reviews.json', { cache: 'no-cache' });
-    const data = await res.json();
-    allReviews = (data || []).filter(r => r.approved);
+    const { data, error } = await supabase.from('reviews').select('*').eq('approved', true).order('date', { ascending: false });
+    if (error) throw error;
+    allReviews = data || [];
     renderReviews(allReviews);
   } catch {}
 }
@@ -361,38 +361,16 @@ document.getElementById('reviewForm').addEventListener('submit', async (e) => {
   };
 
   try {
-    const existingRes = await fetch('reviews/reviews.json', { cache: 'no-cache' });
-    let existing = [];
-    if (existingRes.ok) existing = await existingRes.json();
-
-    const serialCheck = await fetch('devices/devices.json', { cache: 'no-cache' });
-    const devices = serialCheck.ok ? await serialCheck.json() : [];
-
-    const validDevice = devices.find(d => d.serial === serial);
-    if (!validDevice) {
+    const { data: exists, error: rpcError } = await supabase.rpc('check_serial_exists', { p_serial: serial });
+    if (rpcError) throw rpcError;
+    if (!exists) {
       msg.textContent = langData['review.errorSerial'] || 'Serial number not found. Make sure it matches the serial from your repair service.';
       msg.className = 'form-msg error';
       return;
     }
 
-    existing.push(review);
-    const content = JSON.stringify(existing, null, 2);
-
-    const ghToken = localStorage.getItem('adminToken');
-    const ghOwner = localStorage.getItem('adminOwner');
-    const ghRepo = localStorage.getItem('adminRepo');
-    if (ghToken && ghOwner && ghRepo) {
-      await ghWriteFile('reviews/reviews.json', content, ghToken, ghOwner, ghRepo);
-    } else {
-      const successMsg = langData['review.success'] || 'Review submitted for approval! It will appear once approved.';
-      msg.textContent = successMsg;
-      msg.className = 'form-msg success';
-      document.getElementById('reviewForm').reset();
-      selectedRating = 0;
-      starInput.querySelectorAll('i').forEach(s => { s.className = 'far fa-star'; s.classList.remove('active'); });
-      setTimeout(closeReviewModal, 1500);
-      return;
-    }
+    const { error: insertError } = await supabase.from('reviews').insert(review);
+    if (insertError) throw insertError;
 
     const successMsg = langData['review.success'] || 'Review submitted for approval! It will appear once approved.';
     msg.textContent = successMsg;
@@ -406,25 +384,6 @@ document.getElementById('reviewForm').addEventListener('submit', async (e) => {
     msg.className = 'form-msg error';
   }
 });
-
-async function ghWriteFile(path, content, token, owner, repo) {
-  const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-  });
-  let sha = null;
-  if (getRes.ok) {
-    const data = await getRes.json();
-    sha = data.sha;
-  }
-  const body = { message: `Update ${path}`, content: btoa(unescape(encodeURIComponent(content))) };
-  if (sha) body.sha = sha;
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-    method: 'PUT',
-    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error('GitHub write failed');
-}
 
 setTimeout(() => document.body.classList.add('config-ready'), 5000);
 

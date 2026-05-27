@@ -9,7 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/admin.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -21,9 +20,15 @@
 
       <form id="loginForm">
         <label>
-          Admin Password
+          Supabase Email <small>(create user in Supabase Dashboard > Authentication > Users)</small>
+          <input type="email" id="loginEmail" required>
+        </label>
+        <label>
+          Supabase Password
           <input type="password" id="loginPassword" required>
         </label>
+        <hr style="margin:16px 0;border:none;border-top:1px solid var(--clr-border)">
+        <p style="font-size:0.8rem;color:var(--clr-text-light);margin-bottom:12px">GitHub credentials (for repairs &amp; settings):</p>
         <label>
           GitHub Token (<a href="https://github.com/settings/tokens" target="_blank">create one</a> with <code>repo</code> scope)
           <input type="password" id="loginToken" required>
@@ -41,31 +46,6 @@
         <button type="submit" class="btn btn-primary">Sign In</button>
         <p class="login-error" id="loginError"></p>
       </form>
-
-      <div id="loginStep2" style="display:none">
-        <hr style="margin:20px 0;border:none;border-top:1px solid var(--clr-border)">
-        <p style="text-align:center;font-size:0.85rem;color:var(--clr-text-light);margin-bottom:16px">Multi-factor authentication</p>
-
-        <div id="loginTotpStep">
-          <p style="text-align:center;margin-bottom:16px">Enter the 6-digit code from your authenticator app:</p>
-          <input type="text" id="loginTotp" maxlength="6" pattern="[0-9]{6}" placeholder="000000" autocomplete="one-time-code" style="text-align:center;font-size:1.3rem;letter-spacing:6px;font-weight:600">
-          <button type="button" class="btn btn-primary" id="loginTotpBtn" style="width:100%;margin-top:12px">Verify</button>
-          <p style="text-align:center;margin-top:12px;font-size:0.8rem">
-            <a href="#" id="loginUseRecovery">Use a recovery code instead</a>
-          </p>
-          <p class="login-error" id="loginTotpError"></p>
-        </div>
-
-        <div id="loginRecoveryStep" style="display:none">
-          <p style="text-align:center;margin-bottom:16px">Enter one of your recovery codes:</p>
-          <input type="text" id="loginRecoveryCode" placeholder="XXXX-XXXX-XX" style="text-align:center;font-size:1rem;letter-spacing:2px">
-          <button type="button" class="btn btn-primary" id="loginRecoveryBtn" style="width:100%;margin-top:12px">Verify</button>
-          <p style="text-align:center;margin-top:12px;font-size:0.8rem">
-            <a href="#" id="loginBackToTotp">Back to authenticator code</a>
-          </p>
-          <p class="login-error" id="loginRecoveryError"></p>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -237,9 +217,9 @@
         <form id="passwordForm" class="settings-form">
           <div class="settings-group">
             <h3>Change Password</h3>
-            <label>Current Password <input type="password" id="pw-current" required></label>
-            <label>New Password <input type="password" id="pw-new" required minlength="4"></label>
-            <label>Confirm New Password <input type="password" id="pw-confirm" required minlength="4"></label>
+            <p style="font-size:0.85rem;color:var(--clr-text-light);margin-bottom:12px">This updates your Supabase Auth password.</p>
+            <label>New Password <input type="password" id="pw-new" required minlength="6"></label>
+            <label>Confirm New Password <input type="password" id="pw-confirm" required minlength="6"></label>
             <div class="editor-actions">
               <button type="submit" class="btn btn-primary" id="pwSaveBtn">Update Password</button>
             </div>
@@ -247,48 +227,10 @@
           </div>
         </form>
 
-        <div class="settings-group mfa-group">
-          <h3>Multi-Factor Authentication</h3>
-          <p class="mfa-status" id="mfaStatusLabel">Status: <span class="mfa-disabled">Disabled</span></p>
-
-          <div id="mfaSetup" style="display:none">
-            <p class="mfa-desc">Scan this QR code with <strong>Google Authenticator</strong> (or any TOTP app):</p>
-            <div class="mfa-qr-wrap">
-              <div id="mfaQr"></div>
-            </div>
-            <p class="mfa-secret-label">Or enter this key manually:</p>
-            <p class="mfa-secret" id="mfaSecretText"></p>
-            <div class="mfa-verify">
-              <label>Verify by entering the 6-digit code from the app:
-                <input type="text" id="mfaVerifyCode" maxlength="6" pattern="[0-9]{6}" placeholder="000000" style="text-align:center;font-size:1.2rem;letter-spacing:4px;font-weight:600">
-              </label>
-              <button type="button" class="btn btn-primary" id="mfaVerifyBtn">Verify & Enable</button>
-              <button type="button" class="btn btn-secondary" id="mfaCancelBtn">Cancel</button>
-            </div>
-            <p class="form-msg" id="mfaSetupMsg"></p>
-          </div>
-
-          <div id="mfaRecoveryWrap" style="display:none">
-            <p class="mfa-desc"><strong>Save these recovery codes in a safe place!</strong> Each can be used once to log in if you lose access to your authenticator app.</p>
-            <div class="mfa-recovery-codes" id="mfaRecoveryList"></div>
-            <button type="button" class="btn btn-primary" id="mfaRecoveryDoneBtn">I've saved these codes</button>
-          </div>
-
-          <div id="mfaControls" style="display:none">
-            <div class="mfa-recovery-section">
-              <p class="mfa-desc">Recovery codes (click to expand):</p>
-              <button type="button" class="btn btn-secondary btn-sm" id="mfaShowRecoveryBtn">Show Codes</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="mfaRegenBtn">Regenerate Codes</button>
-            </div>
-            <div style="margin-top:16px">
-              <button type="button" class="btn btn-danger btn-sm" id="mfaDisableBtn">Disable MFA</button>
-            </div>
-            <p class="form-msg" id="mfaControlMsg"></p>
-          </div>
-
-          <div class="mfa-actions">
-            <button type="button" class="btn btn-primary" id="mfaEnableBtn" style="display:none">Enable MFA</button>
-          </div>
+        <div class="settings-group">
+          <h3>Session</h3>
+          <button type="button" class="btn btn-danger" id="sessionLogoutBtn">Sign Out of All Sessions</button>
+          <p class="form-msg" id="sessionMsg"></p>
         </div>
       </div>
 
@@ -402,6 +344,8 @@
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

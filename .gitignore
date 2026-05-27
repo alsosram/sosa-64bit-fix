@@ -1,4 +1,3 @@
-node_modules/
-.DS_Store
-Thumbs.db
-*.log
+# Data now lives in Supabase (not committed to repo)
+devices/devices.json
+reviews/reviews.json
