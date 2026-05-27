@@ -21,7 +21,7 @@
     <div class="container header-inner">
       <a href="#" class="logo" data-cfg="siteName">Sosa's 64bit Fix</a>
       <nav class="main-nav" id="mainNav">
-        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
+        <button class="nav-toggle" id="navToggle" data-i18n-aria="nav.menuLabel" aria-label="Menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
         <ul class="nav-list">
           <li><a href="#home" class="nav-link active" data-i18n="nav.home">Home</a></li>
           <li><a href="#services" class="nav-link" data-i18n="nav.services">Services</a></li>
@@ -45,9 +45,9 @@
     <section class="hero" id="home">
       <div class="hero-grid-bg"></div>
       <div class="container hero-content">
-        <div class="hero-badge" data-cfg="hero.badge">SINCE 2024</div>
-        <h1 data-cfg="hero.title">Your PC.<br>Our <span class="highlight">Expertise.</span></h1>
-        <p data-cfg="hero.subtitle">Professional computer repair, upgrades, and diagnostics. Fast turnaround, fair prices, and work you can trust.</p>
+        <div class="hero-badge" data-cfg="hero.badge" data-i18n="hero.badge">SINCE 2024</div>
+        <h1 data-cfg="hero.title" data-i18n="hero.title">Your PC.<br>Our <span class="highlight">Expertise.</span></h1>
+        <p data-cfg="hero.subtitle" data-i18n="hero.subtitle">Professional computer repair, upgrades, and diagnostics. Fast turnaround, fair prices, and work you can trust.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary" data-i18n="hero.btnQuote">Get a Quote</a>
           <a href="#repairs" class="btn btn-outline" data-i18n="hero.btnRepairs">View Repairs</a>
@@ -74,8 +74,8 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag" data-i18n="services.tag">What I Do</span>
-          <h2 class="section-title" data-cfg="services.title">Repair Services</h2>
-          <p class="section-subtitle" data-cfg="services.subtitle">From virus removal to hardware upgrades — I've got you covered</p>
+          <h2 class="section-title" data-cfg="services.title" data-i18n="services.title">Repair Services</h2>
+          <p class="section-subtitle" data-cfg="services.subtitle" data-i18n="services.subtitle">From virus removal to hardware upgrades — I've got you covered</p>
         </div>
         <div class="services-grid">
           <div class="service-card">
@@ -117,8 +117,8 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag" data-i18n="repairs.tag">My Work</span>
-          <h2 class="section-title" data-cfg="repairs.title">Recent Repairs</h2>
-          <p class="section-subtitle" data-cfg="repairs.subtitle">Real repairs I've done — see the process and results</p>
+          <h2 class="section-title" data-cfg="repairs.title" data-i18n="repairs.title">Recent Repairs</h2>
+          <p class="section-subtitle" data-cfg="repairs.subtitle" data-i18n="repairs.subtitle">Real repairs I've done — see the process and results</p>
         </div>
         <div class="repairs-grid" id="repairsGrid">
         </div>
@@ -130,8 +130,8 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag" data-i18n="reviews.tag">Testimonials</span>
-          <h2 class="section-title" data-cfg="reviews.title">What Clients Say</h2>
-          <p class="section-subtitle" data-cfg="reviews.subtitle">Real reviews from real customers</p>
+          <h2 class="section-title" data-cfg="reviews.title" data-i18n="reviews.title">What Clients Say</h2>
+          <p class="section-subtitle" data-cfg="reviews.subtitle" data-i18n="reviews.subtitle">Real reviews from real customers</p>
         </div>
         <div class="reviews-grid" id="reviewsGrid">
         </div>
@@ -146,12 +146,12 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag" data-i18n="about.tag">About Me</span>
-          <h2 class="section-title" data-cfg="about.title">The Man Behind The Bench</h2>
+          <h2 class="section-title" data-cfg="about.title" data-i18n="about.title">The Man Behind The Bench</h2>
         </div>
         <div class="about-content">
           <div class="about-text">
-            <p data-cfg="about.paragraph1">Welcome to <strong>Sosa's 64bit Fix</strong> — your trusted local computer repair shop. I'm Sosa, a certified technician with years of hands-on experience reviving dead PCs, upgrading aging laptops, and making technology work for you.</p>
-            <p data-cfg="about.paragraph2">I believe in transparent pricing, honest diagnostics, and treating every device like it's my own. Whether you spilled coffee on your laptop, got hit with ransomware, or just need a tune-up — I'll get you back up and running.</p>
+            <p data-cfg="about.paragraph1" data-i18n="about.paragraph1">Welcome to <strong>Sosa's 64bit Fix</strong> — your trusted local computer repair shop. I'm Sosa, a certified technician with years of hands-on experience reviving dead PCs, upgrading aging laptops, and making technology work for you.</p>
+            <p data-cfg="about.paragraph2" data-i18n="about.paragraph2">I believe in transparent pricing, honest diagnostics, and treating every device like it's my own. Whether you spilled coffee on your laptop, got hit with ransomware, or just need a tune-up — I'll get you back up and running.</p>
             <div class="about-details">
               <div class="about-detail">
                 <i class="fas fa-check-circle"></i>
@@ -169,7 +169,7 @@
           </div>
           <div class="about-image">
             <div class="about-img-frame">
-              <img data-cfg-src="about.image" src="https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&q=80" alt="Computer repair workbench">
+              <img data-cfg-src="about.image" src="https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&q=80" data-i18n-alt="about.imageAlt" alt="Computer repair workbench">
             </div>
           </div>
         </div>
@@ -181,8 +181,8 @@
       <div class="container">
         <div class="section-header">
           <span class="section-tag" data-i18n="contact.tag">Get In Touch</span>
-          <h2 class="section-title" data-cfg="contact.title">Let's Fix It</h2>
-          <p class="section-subtitle" data-cfg="contact.subtitle">Have a broken device? Drop me a message and I'll get back to you ASAP.</p>
+          <h2 class="section-title" data-cfg="contact.title" data-i18n="contact.title">Let's Fix It</h2>
+          <p class="section-subtitle" data-cfg="contact.subtitle" data-i18n="contact.subtitle">Have a broken device? Drop me a message and I'll get back to you ASAP.</p>
         </div>
         <div class="contact-wrap">
           <form class="contact-form" id="contactForm">
@@ -200,21 +200,21 @@
               <i class="fas fa-map-marker-alt"></i>
               <div>
                 <strong data-i18n="contact.infoLocation">Location</strong>
-                <span data-cfg="contact.address">San Diego, CA</span>
+                <span data-cfg="contact.address" data-i18n="contact.address">San Diego, CA</span>
               </div>
             </div>
             <div class="contact-item">
               <i class="fas fa-envelope"></i>
               <div>
                 <strong data-i18n="contact.infoEmail">Email</strong>
-                <span data-cfg="contact.email">sosa@64bitfix.com</span>
+                <span data-cfg="contact.email" data-i18n="contact.email">sosa@64bitfix.com</span>
               </div>
             </div>
             <div class="contact-item">
               <i class="fas fa-clock"></i>
               <div>
                 <strong data-i18n="contact.infoHours">Hours</strong>
-                <span data-cfg="contact.hours">Mon-Fri 9AM-7PM, Sat 10AM-4PM</span>
+                <span data-cfg="contact.hours" data-i18n="contact.hours">Mon-Fri 9AM-7PM, Sat 10AM-4PM</span>
               </div>
             </div>
           </div>
@@ -228,18 +228,18 @@
     <div class="container footer-inner">
       <div class="footer-brand">
         <span class="footer-logo" data-cfg="siteName">Sosa's 64bit Fix</span>
-        <p class="footer-tagline" data-cfg="footer.tagline">Fixing your tech, one bit at a time.</p>
+        <p class="footer-tagline" data-cfg="footer.tagline" data-i18n="footer.tagline">Fixing your tech, one bit at a time.</p>
       </div>
       <ul class="footer-links">
-        <li><a href="#home">Home</a></li>
-        <li><a href="#services">Services</a></li>
-        <li><a href="#repairs">Repairs</a></li>
-        <li><a href="#reviews">Reviews</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#contact">Contact</a></li>
+        <li><a href="#home" data-i18n="footer.home">Home</a></li>
+        <li><a href="#services" data-i18n="footer.services">Services</a></li>
+        <li><a href="#repairs" data-i18n="footer.repairs">Repairs</a></li>
+        <li><a href="#reviews" data-i18n="footer.reviews">Reviews</a></li>
+        <li><a href="#about" data-i18n="footer.about">About</a></li>
+        <li><a href="#contact" data-i18n="footer.contact">Contact</a></li>
         <li><a href="admin.html" data-i18n="footer.admin">Admin</a></li>
       </ul>
-      <p class="footer-copy">&copy; 2026 Sosa's 64bit Fix. All rights reserved.</p>
+      <p class="footer-copy">&copy; 2026 Sosa's 64bit Fix. <span data-i18n="footer.copyright">All rights reserved.</span></p>
     </div>
   </footer>
 
@@ -259,7 +259,7 @@
         <form id="reviewForm">
           <label>
             <span data-i18n="review.name">Your Name</span>
-            <input type="text" id="reviewName" required>
+            <input type="text" id="reviewName" required data-i18n-placeholder="review.namePlaceholder" placeholder="Enter your name">
           </label>
           <label>
             <span data-i18n="review.serial">Device Serial Number</span>

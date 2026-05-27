@@ -38,9 +38,8 @@ async function loadLang(lang) {
   applyLang();
   localStorage.setItem('siteLang', lang);
   langBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
-  if (siteConfig.siteName) {
-    document.title = `${siteConfig.siteName} — ${lang === 'es' ? 'Reparación de Computadoras' : 'Computer Repair'}`;
-  }
+  const titleVal = langData['titleTag'];
+  if (titleVal) document.title = titleVal;
 }
 
 function applyLang() {
@@ -54,6 +53,26 @@ function applyLang() {
     const val = langData[key];
     if (val !== undefined) el.placeholder = val;
   });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.dataset.i18nAria;
+    const val = langData[key];
+    if (val !== undefined) el.setAttribute('aria-label', val);
+  });
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+    const key = el.dataset.i18nAlt;
+    const val = langData[key];
+    if (val !== undefined) el.alt = val;
+  });
+  const titleEl = document.querySelector('[data-cfg="titleTag"]');
+  const titleVal = langData['titleTag'];
+  if (titleEl && titleVal) {
+    document.title = titleVal;
+  }
+  const metaDesc = document.querySelector('meta[data-cfg="metaDescription"]');
+  const metaVal = langData['metaDescription'];
+  if (metaDesc && metaVal) {
+    metaDesc.setAttribute('content', metaVal);
+  }
   if (reviewsGrid && !reviewsGrid.children.length) {
     const emptyMsg = langData['reviews.empty'] || 'No reviews yet. Be the first to leave one!';
     reviewsGrid.innerHTML = `<p style="text-align:center;color:var(--clr-text-light);grid-column:1/-1">${emptyMsg}</p>`;
