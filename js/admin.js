@@ -7,7 +7,6 @@ let allReviews = [];
 let editingRepairId = null;
 let editingDeviceSerial = null;
 let _mfaFactorId = null;
-let _mfaLoginData = null;
 
 const viewLogin = document.getElementById('viewLogin');
 const viewDashboard = document.getElementById('viewDashboard');
@@ -20,6 +19,12 @@ const loginMfaStep = document.getElementById('loginMfaStep');
 const loginMfaCode = document.getElementById('loginMfaCode');
 const loginMfaBtn = document.getElementById('loginMfaBtn');
 const loginMfaError = document.getElementById('loginMfaError');
+const loginMfaEnroll = document.getElementById('loginMfaEnroll');
+const loginMfaQr = document.getElementById('loginMfaQr');
+const loginMfaSecret = document.getElementById('loginMfaSecret');
+const loginMfaEnrollCode = document.getElementById('loginMfaEnrollCode');
+const loginMfaEnrollBtn = document.getElementById('loginMfaEnrollBtn');
+const loginMfaEnrollError = document.getElementById('loginMfaEnrollError');
 
 const repairsBody = document.getElementById('repairsBody');
 const repairsTable = document.getElementById('repairsTable');
@@ -77,6 +82,14 @@ const settingsForm = document.getElementById('settingsForm');
 const settingsMsg = document.getElementById('settingsMsg');
 const settingsSaveBtn = document.getElementById('settingsSaveBtn');
 
+const githubForm = document.getElementById('githubForm');
+const githubToken = document.getElementById('githubToken');
+const githubOwner = document.getElementById('githubOwner');
+const githubRepo = document.getElementById('githubRepo');
+const githubSaveBtn = document.getElementById('githubSaveBtn');
+const githubMsg = document.getElementById('githubMsg');
+const githubStatus = document.getElementById('githubStatus');
+
 const passwordForm = document.getElementById('passwordForm');
 const pwMsg = document.getElementById('pwMsg');
 const pwSaveBtn = document.getElementById('pwSaveBtn');
@@ -122,26 +135,71 @@ loginForm.addEventListener('submit', async (e) => {
   loginError.textContent = '';
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
-  token = document.getElementById('loginToken').value.trim();
-  owner = document.getElementById('loginOwner').value.trim();
-  repo = document.getElementById('loginRepo').value.trim();
-  if (!email || !password || !token || !owner || !repo) { loginError.textContent = 'Please fill in all fields.'; return; }
+  if (!email || !password) { loginError.textContent = 'Please enter your email and password.'; return; }
   loginError.textContent = 'Signing in...';
   try {
     const { data, error } = await sbAuth.signInWithPassword({ email, password });
     if (error) throw error;
-    if (data?.factors?.length) {
-      _mfaFactorId = data.factors[0].id;
-      _mfaLoginData = { token, owner, repo };
+    const verified = (data?.factors || []).filter(f => f.type === 'totp' && f.status === 'verified');
+    if (verified.length) {
+      _mfaFactorId = verified[0].id;
       loginForm.style.display = 'none';
       loginMfaStep.style.display = '';
       loginMfaCode.focus();
       return;
     }
-    const { error: metaErr } = await sbAuth.updateUser({ data: { github_token: token, github_owner: owner, github_repo: repo } });
-    if (metaErr) throw metaErr;
-    showDashboard();
+    showLoginMfaEnroll();
   } catch (err) { loginError.textContent = 'Login failed: ' + err.message; }
+});
+
+loginMfaBtn.addEventListener('click', async () => {
+  const code = loginMfaCode.value.trim();
+  if (!code || code.length !== 6) { loginMfaError.textContent = 'Enter a 6-digit code.'; return; }
+  loginMfaError.textContent = 'Verifying...';
+  loginMfaBtn.disabled = true;
+  try {
+    const { data: chal, error: chalErr } = await sbMfaChallenge(_mfaFactorId);
+    if (chalErr) throw chalErr;
+    const { error: verErr } = await sbMfaVerify(_mfaFactorId, chal.id, code);
+    if (verErr) throw verErr;
+    showDashboard();
+  } catch (err) {
+    loginMfaError.textContent = 'MFA failed: ' + err.message;
+    loginMfaBtn.disabled = false;
+  }
+});
+
+let _loginEnrollFactorId = null;
+
+async function showLoginMfaEnroll() {
+  loginForm.style.display = 'none';
+  loginMfaEnroll.style.display = '';
+  loginMfaEnrollError.textContent = '';
+  try {
+    const { data, error } = await sbMfaEnroll();
+    if (error) throw error;
+    _loginEnrollFactorId = data.id;
+    loginMfaSecret.textContent = data.totp.secret;
+    loginMfaQr.innerHTML = '';
+    new QRCode(loginMfaQr, { text: data.totp.qr_code, width: 180, height: 180, colorDark: '#1E3D63', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
+  } catch (err) { loginMfaEnrollError.textContent = 'Error starting MFA enrollment: ' + err.message; }
+}
+
+loginMfaEnrollBtn.addEventListener('click', async () => {
+  const code = loginMfaEnrollCode.value.trim();
+  if (!code || code.length !== 6) { loginMfaEnrollError.textContent = 'Enter a 6-digit code.'; return; }
+  loginMfaEnrollError.textContent = 'Verifying...';
+  loginMfaEnrollBtn.disabled = true;
+  try {
+    const { data: chal, error: chalErr } = await sbMfaChallenge(_loginEnrollFactorId);
+    if (chalErr) throw chalErr;
+    const { error: verErr } = await sbMfaVerify(_loginEnrollFactorId, chal.id, code);
+    if (verErr) throw verErr;
+    showDashboard();
+  } catch (err) {
+    loginMfaEnrollError.textContent = 'MFA enrollment failed: ' + err.message;
+    loginMfaEnrollBtn.disabled = false;
+  }
 });
 
 function showView(view) {
@@ -154,12 +212,21 @@ function showView(view) {
     loginMfaError.textContent = '';
     loginMfaBtn.disabled = false;
     loginError.textContent = '';
+    loginMfaEnroll.style.display = 'none';
+    loginMfaEnrollCode.value = '';
+    loginMfaEnrollError.textContent = '';
+    loginMfaEnrollBtn.disabled = false;
   }
 }
 
 function showDashboard() {
   showView(viewDashboard);
-  switchTab('repairs');
+  if (token && owner && repo) {
+    switchTab('repairs');
+  } else {
+    switchTab('github');
+    githubStatus.innerHTML = '⚠️ GitHub credentials not configured. Enter them below to enable saving repairs and settings.';
+  }
 }
 
 function showRepairEditor(repair = null) {
@@ -217,6 +284,7 @@ function switchTab(tabId) {
   if (tabId === 'devices') loadDevicesDashboard();
   if (tabId === 'reviews') loadReviewsDashboard();
   if (tabId === 'settings') loadSettings();
+  if (tabId === 'github') loadGitHubStatus();
   if (tabId === 'account') loadMfaStatus();
 }
 
@@ -291,28 +359,7 @@ async function deleteRepair(id) {
   } catch (err) { alert('Delete failed: ' + err.message); }
 }
 
-loginMfaBtn.addEventListener('click', async () => {
-  const code = loginMfaCode.value.trim();
-  if (!code || code.length !== 6) { loginMfaError.textContent = 'Enter a 6-digit code.'; return; }
-  loginMfaError.textContent = 'Verifying...';
-  loginMfaBtn.disabled = true;
-  try {
-    const { data: chal, error: chalErr } = await sbMfaChallenge(_mfaFactorId);
-    if (chalErr) throw chalErr;
-    const { error: verErr } = await sbMfaVerify(_mfaFactorId, chal.id, code);
-    if (verErr) throw verErr;
-    ({ token, owner, repo } = _mfaLoginData);
-    const { error: metaErr } = await sbAuth.updateUser({ data: { github_token: token, github_owner: owner, github_repo: repo } });
-    if (metaErr) throw metaErr;
-    showDashboard();
-  } catch (err) {
-    loginMfaError.textContent = 'MFA failed: ' + err.message;
-    loginMfaBtn.disabled = false;
-  }
-});
-
 logoutBtn.addEventListener('click', async () => {
-  await sbAuth.updateUser({ data: { github_token: null, github_owner: null, github_repo: null } }).catch(() => {});
   await sbAuth.signOut().catch(() => {});
   showView(viewLogin);
 });
@@ -511,7 +558,7 @@ function renderReviewsDashboard() {
     pendingReviews.innerHTML = '<p style="color:var(--clr-text-light);font-size:0.85rem">No pending reviews.</p>';
   } else {
     pendingReviews.innerHTML = pending.map(r => {
-      const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+      const stars = '&#9733;'.repeat(r.rating) + '&#9734;'.repeat(5 - r.rating);
       return `<div class="pending-card">
         <div class="review-stars">${stars}</div>
         <p class="review-text">"${escHtml(r.text)}"</p>
@@ -528,7 +575,7 @@ function renderReviewsDashboard() {
     approvedReviews.innerHTML = '<p style="color:var(--clr-text-light);font-size:0.85rem">No approved reviews.</p>';
   } else {
     approvedReviews.innerHTML = approved.map(r => {
-      const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+      const stars = '&#9733;'.repeat(r.rating) + '&#9734;'.repeat(5 - r.rating);
       return `<div class="approved-card">
         <div class="review-stars">${stars}</div>
         <p class="review-text">"${escHtml(r.text)}"</p>
@@ -678,6 +725,41 @@ async function translateAllToSpanish() {
 
 document.getElementById('translateBtn').addEventListener('click', translateAllToSpanish);
 
+/* ===== GITHUB SETTINGS ===== */
+function loadGitHubStatus() {
+  if (token && owner && repo) {
+    githubStatus.innerHTML = '&#10003; GitHub is configured (<code>' + escHtml(owner) + '/' + escHtml(repo) + '</code>)';
+    githubToken.value = token;
+    githubOwner.value = owner;
+    githubRepo.value = repo;
+  } else {
+    githubStatus.innerHTML = '&#9888; GitHub credentials not configured. Enter them below to enable saving repairs and settings.';
+  }
+}
+
+githubForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  githubMsg.textContent = 'Saving...'; githubMsg.className = 'form-msg';
+  githubSaveBtn.disabled = true;
+  const newToken = githubToken.value.trim();
+  const newOwner = githubOwner.value.trim();
+  const newRepo = githubRepo.value.trim();
+  if (!newToken || !newOwner || !newRepo) {
+    githubMsg.textContent = 'All fields are required.'; githubMsg.className = 'form-msg error';
+    githubSaveBtn.disabled = false; return;
+  }
+  try {
+    const { error } = await sbAuth.updateUser({ data: { github_token: newToken, github_owner: newOwner, github_repo: newRepo } });
+    if (error) throw error;
+    token = newToken; owner = newOwner; repo = newRepo;
+    githubMsg.textContent = 'GitHub settings saved!'; githubMsg.className = 'form-msg success';
+    githubStatus.innerHTML = '&#10003; GitHub is configured (<code>' + escHtml(owner) + '/' + escHtml(repo) + '</code>)';
+  } catch (err) {
+    githubMsg.textContent = 'Error: ' + err.message; githubMsg.className = 'form-msg error';
+  }
+  githubSaveBtn.disabled = false;
+});
+
 passwordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   pwMsg.textContent = ''; pwMsg.className = 'form-msg';
@@ -795,7 +877,7 @@ sbAuth.getSession().then(async ({ data: { session } }) => {
       token = meta.github_token;
       owner = meta.github_owner;
       repo = meta.github_repo;
-      showDashboard();
     }
   }
+  if (session) showDashboard();
 });
