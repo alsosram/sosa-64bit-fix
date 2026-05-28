@@ -14,9 +14,6 @@ function sbFetch(method, path, body, _noRetry) {
     if (r.status >= 400) {
       let msg = text;
       try { const j = JSON.parse(text); msg = j.message || j.error || j.msg || msg; } catch {}
-      if (!_noRetry && msg.includes('JWT')) {
-        return _refreshToken().then(() => sbFetch(method, path, body, true));
-      }
       throw new Error(msg);
     }
     try { return JSON.parse(text); } catch { return text; }
@@ -211,7 +208,11 @@ function sbMfaChallenge(factorId) {
   });
   return attempt().catch(err => {
     if (err.message && err.message.includes('JWT')) {
-      return _refreshToken().then(attempt).catch(() => ({ data: null, error: err }));
+      return _refreshToken().then(attempt).catch(() => {
+        try { localStorage.removeItem('sb-session'); } catch {}
+        _token = null;
+        return { data: null, error: new Error('Session expired. Please log in again.') };
+      });
     }
     return { data: null, error: err };
   });
@@ -235,7 +236,11 @@ function sbMfaVerify(factorId, challengeId, code) {
   });
   return attempt().catch(err => {
     if (err.message && err.message.includes('JWT')) {
-      return _refreshToken().then(attempt).catch(() => ({ data: null, error: err }));
+      return _refreshToken().then(attempt).catch(() => {
+        try { localStorage.removeItem('sb-session'); } catch {}
+        _token = null;
+        return { data: null, error: new Error('Session expired. Please log in again.') };
+      });
     }
     return { data: null, error: err };
   });
