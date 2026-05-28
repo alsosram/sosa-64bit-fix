@@ -138,9 +138,8 @@ loginForm.addEventListener('submit', async (e) => {
       loginMfaCode.focus();
       return;
     }
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('adminOwner', owner);
-    localStorage.setItem('adminRepo', repo);
+    const { error: metaErr } = await sbAuth.updateUser({ data: { github_token: token, github_owner: owner, github_repo: repo } });
+    if (metaErr) throw metaErr;
     showDashboard();
   } catch (err) { loginError.textContent = 'Login failed: ' + err.message; }
 });
@@ -303,9 +302,8 @@ loginMfaBtn.addEventListener('click', async () => {
     const { error: verErr } = await sbMfaVerify(_mfaFactorId, chal.id, code);
     if (verErr) throw verErr;
     ({ token, owner, repo } = _mfaLoginData);
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('adminOwner', owner);
-    localStorage.setItem('adminRepo', repo);
+    const { error: metaErr } = await sbAuth.updateUser({ data: { github_token: token, github_owner: owner, github_repo: repo } });
+    if (metaErr) throw metaErr;
     showDashboard();
   } catch (err) {
     loginMfaError.textContent = 'MFA failed: ' + err.message;
@@ -314,10 +312,8 @@ loginMfaBtn.addEventListener('click', async () => {
 });
 
 logoutBtn.addEventListener('click', async () => {
+  await sbAuth.updateUser({ data: { github_token: null, github_owner: null, github_repo: null } }).catch(() => {});
   await sbAuth.signOut().catch(() => {});
-  localStorage.removeItem('adminToken');
-  localStorage.removeItem('adminOwner');
-  localStorage.removeItem('adminRepo');
   showView(viewLogin);
 });
 
@@ -785,9 +781,6 @@ document.getElementById('sessionLogoutBtn').addEventListener('click', async () =
     if (error) throw error;
     document.getElementById('sessionMsg').textContent = 'Signed out globally. Redirecting...';
     document.getElementById('sessionMsg').className = 'form-msg success';
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminOwner');
-    localStorage.removeItem('adminRepo');
     setTimeout(() => showView(viewLogin), 1000);
   } catch (err) {
     document.getElementById('sessionMsg').textContent = 'Error: ' + err.message;
@@ -795,11 +788,14 @@ document.getElementById('sessionLogoutBtn').addEventListener('click', async () =
   }
 });
 
-sbAuth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    const savedToken = localStorage.getItem('adminToken');
-    const savedOwner = localStorage.getItem('adminOwner');
-    const savedRepo = localStorage.getItem('adminRepo');
-    if (savedToken && savedOwner && savedRepo) { token = savedToken; owner = savedOwner; repo = savedRepo; showDashboard(); }
+sbAuth.getSession().then(async ({ data: { session } }) => {
+  if (session?.user?.user_metadata?.github_token) {
+    const meta = session.user.user_metadata;
+    if (meta.github_token && meta.github_owner && meta.github_repo) {
+      token = meta.github_token;
+      owner = meta.github_owner;
+      repo = meta.github_repo;
+      showDashboard();
+    }
   }
 });
