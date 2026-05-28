@@ -105,6 +105,13 @@ const mfaActive = document.getElementById('mfaActive');
 const mfaDisableBtn = document.getElementById('mfaDisableBtn');
 const mfaDisableMsg = document.getElementById('mfaDisableMsg');
 
+const transEnJson = document.getElementById('transEnJson');
+const transEsJson = document.getElementById('transEsJson');
+const transEnSaveBtn = document.getElementById('transEnSaveBtn');
+const transEsSaveBtn = document.getElementById('transEsSaveBtn');
+const transEnMsg = document.getElementById('transEnMsg');
+const transEsMsg = document.getElementById('transEsMsg');
+
 async function ghFetch(path, method = 'GET', body = null) {
   const opts = { method, headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } };
   if (body) opts.body = JSON.stringify(body);
@@ -308,7 +315,40 @@ function switchTab(tabId) {
   if (tabId === 'settings') loadSettings();
   if (tabId === 'github') loadGitHubStatus();
   if (tabId === 'account') loadMfaStatus();
+  if (tabId === 'translations') loadTranslations();
 }
+
+async function loadTranslations() {
+  try {
+    const en = await readFileContent('lang/en.json');
+    const es = await readFileContent('lang/es.json');
+    if (en) { const parsed = JSON.parse(en.content); transEnJson.value = JSON.stringify(parsed, null, 2); transEnJson._sha = en.sha; } else transEnJson.value = '{}';
+    if (es) { const parsed = JSON.parse(es.content); transEsJson.value = JSON.stringify(parsed, null, 2); transEsJson._sha = es.sha; } else transEsJson.value = '{}';
+    transEnMsg.textContent = ''; transEnMsg.className = 'form-msg';
+    transEsMsg.textContent = ''; transEsMsg.className = 'form-msg';
+  } catch (err) { transEnMsg.textContent = 'Error: ' + err.message; transEnMsg.className = 'form-msg error'; }
+}
+
+async function saveTranslation(lang) {
+  const textarea = lang === 'en' ? transEnJson : transEsJson;
+  const msg = lang === 'en' ? transEnMsg : transEsMsg;
+  const btn = lang === 'en' ? transEnSaveBtn : transEsSaveBtn;
+  const path = `lang/${lang}.json`;
+  let content;
+  try { content = JSON.stringify(JSON.parse(textarea.value), null, 2); } catch (e) { msg.textContent = 'Invalid JSON: ' + e.message; msg.className = 'form-msg error'; return; }
+  msg.textContent = 'Saving...'; msg.className = 'form-msg';
+  btn.disabled = true;
+  try {
+    await writeFile(path, content, textarea._sha || null);
+    const updated = await readFileContent(path);
+    if (updated) textarea._sha = updated.sha;
+    msg.textContent = 'Saved!'; msg.className = 'form-msg success';
+  } catch (err) { msg.textContent = 'Error: ' + err.message; msg.className = 'form-msg error'; }
+  btn.disabled = false;
+}
+
+transEnSaveBtn.addEventListener('click', () => saveTranslation('en'));
+transEsSaveBtn.addEventListener('click', () => saveTranslation('es'));
 
 edTitle.addEventListener('input', () => {
   if (editingRepairId) return;
