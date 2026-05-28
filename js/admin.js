@@ -140,6 +140,12 @@ loginForm.addEventListener('submit', async (e) => {
   try {
     const { data, error } = await sbAuth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (data?.user?.user_metadata?.github_token) {
+      const meta = data.user.user_metadata;
+      if (meta.github_token && meta.github_owner && meta.github_repo) {
+        token = meta.github_token; owner = meta.github_owner; repo = meta.github_repo;
+      }
+    }
     if (data?.factors === undefined) {
       showDashboard();
       return;
