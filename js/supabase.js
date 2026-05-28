@@ -134,34 +134,69 @@ function sbRpc(fn, params) {
     .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
 }
 
+let _pendingMfaSecret = null;
+
+function _genSecret() {
+  const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const b = new Uint8Array(20);
+  crypto.getRandomValues(b);
+  return Array.from(b).map(x => c[x % 32]).join('');
+}
+
+function _totpUri(s, e, i) {
+  return 'otpauth://totp/' + encodeURIComponent(i) + ':' + encodeURIComponent(e) + '?secret=' + s + '&issuer=' + encodeURIComponent(i) + '&algorithm=SHA1&digits=6&period=30';
+}
+
+async function _validateTOTP(code, secret) {
+  const r = await fetch('https://www.authenticatorApi.com/Validate.aspx?Pin=' + encodeURIComponent(code) + '&SecretCode=' + encodeURIComponent(secret));
+  const t = await r.text();
+  return t.trim().toLowerCase() === 'true';
+}
+
+function _getSessionEmail() {
+  try { const s = JSON.parse(localStorage.getItem('sb-session')); return s?.user?.email || 'user'; } catch { return 'user'; }
+}
+
 function sbMfaEnroll() {
-  return sbFetch('POST', 'auth/v1/mfa/totp/enroll', { factor_type: 'totp' })
-    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+  const secret = _genSecret();
+  _pendingMfaSecret = secret;
+  const email = _getSessionEmail();
+  const uri = _totpUri(secret, email, "Sosa's 64bit Fix");
+  return Promise.resolve({ data: { id: 'totp', totp: { qr_code: uri, secret: secret } }, error: null });
 }
 
 function sbMfaChallenge(factorId) {
-  return sbFetch('POST', 'auth/v1/mfa/challenge', { factor_id: factorId })
-    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+  return sbFetch('GET', 'auth/v1/user').then(u => {
+    if (!(u?.user_metadata?.totp_secret)) throw new Error('MFA not enrolled');
+    return { data: { id: 'c' }, error: null };
+  }).catch(err => ({ data: null, error: err }));
 }
 
 function sbMfaVerify(factorId, challengeId, code) {
-  return sbFetch('POST', 'auth/v1/mfa/verify', { factor_id: factorId, challenge_id: challengeId, code })
-    .then(d => {
-      if (d.access_token) {
-        _token = d.access_token;
-        const s = { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at, user: d.user };
-        try { localStorage.setItem('sb-session', JSON.stringify(s)); } catch {}
-      }
-      return { data: d, error: null };
-    }).catch(err => ({ data: null, error: err }));
+  if (_pendingMfaSecret) {
+    return _validateTOTP(code, _pendingMfaSecret).then(ok => {
+      if (!ok) return { data: null, error: new Error('Invalid code') };
+      const s = _pendingMfaSecret; _pendingMfaSecret = null;
+      return sbAuth.updateUser({ data: { totp_secret: s } });
+    });
+  }
+  return sbFetch('GET', 'auth/v1/user').then(u => {
+    const s = u?.user_metadata?.totp_secret;
+    if (!s) return { data: null, error: new Error('MFA not enrolled') };
+    return _validateTOTP(code, s).then(ok => {
+      if (!ok) return { data: null, error: new Error('Invalid code') };
+      return { data: {}, error: null };
+    });
+  }).catch(err => ({ data: null, error: err }));
 }
 
 function sbMfaUnenroll(factorId) {
-  return sbFetch('DELETE', `auth/v1/mfa/factors/${factorId}`)
-    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+  return sbAuth.updateUser({ data: { totp_secret: '' } });
 }
 
 function sbMfaListFactors() {
-  return sbFetch('GET', 'auth/v1/mfa/factors')
-    .then(d => ({ data: d, error: null })).catch(err => ({ data: null, error: err }));
+  return sbFetch('GET', 'auth/v1/user').then(u => {
+    if (u?.user_metadata?.totp_secret) return { data: [{ id: 'totp', type: 'totp', status: 'verified' }], error: null };
+    return { data: [], error: null };
+  }).catch(err => ({ data: null, error: err }));
 }

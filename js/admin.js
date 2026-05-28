@@ -153,13 +153,7 @@ loginForm.addEventListener('submit', async (e) => {
         token = meta.github_token; owner = meta.github_owner; repo = meta.github_repo;
       }
     }
-    if (data?.factors === undefined) {
-      showDashboard();
-      return;
-    }
-    const verified = (data?.factors || []).filter(f => f.type === 'totp' && f.status === 'verified');
-    if (verified.length) {
-      _mfaFactorId = verified[0].id;
+    if (data?.user?.user_metadata?.totp_secret) {
       loginForm.style.display = 'none';
       loginMfaStep.style.display = '';
       loginMfaCode.focus();
