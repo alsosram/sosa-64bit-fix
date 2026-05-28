@@ -1,13 +1,1 @@
-[
-  {
-    "id": "example-repair-2",
-    "title": "SSD Upgrade & System Tune",
-    "deviceType": "Desktop",
-    "deviceModel": "Custom Build",
-    "issue": "Slow boot and general sluggishness",
-    "status": "Completed",
-    "date": "2026-05-10",
-    "image": "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=600&q=80",
-    "excerpt": "Upgraded from HDD to NVMe SSD, added more RAM, and cleaned up the OS for a brand new feel."
-  }
-]
+[]
