@@ -2,4 +2,4 @@
 
 A modular computer repair business website — statically hosted on GitHub Pages.
 
-**Site:** https://alsosram.github.io/sosa-64bit-fix/
+**Site:** https://sosramalex.github.io/sosa-64bit-fix/
